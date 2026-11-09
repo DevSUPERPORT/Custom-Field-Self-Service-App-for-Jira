@@ -1,0 +1,35 @@
+{
+  "name": "custom-field-self-service",
+  "version": "1.1.0",
+  "main": "index.js",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "lint": "eslint src",
+    "test": "node --test \"test/*.test.mjs\"",
+    "build:ui": "npm --prefix static/main run build",
+    "check": "npm test && npm run build:ui"
+  },
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "^4.6.0"
+  },
+  "dependencies": {
+    "@forge/api": "^8.4.0",
+    "@forge/bridge": "^7.2.1",
+    "@forge/kvs": "^1.0.0",
+    "@forge/react": "^12.4.0",
+    "@forge/realtime": "^1.0.2",
+    "@forge/resolver": "^2.0.1",
+    "react": "^18.2.0"
+  },
+  "description": "Custom Field Self-Service for Jira: project admins manage their own custom fields within SUPERPORT guidelines (Forge app).",
+  "author": "George Papasotiriou, SUPERPORT (superport.digital)",
+  "overrides": {
+    "prosemirror-view": "^1.42.3",
+    "fast-uri": "^3.1.9",
+    "glob": "^14.0.2",
+    "minimatch": "^11.0.1"
+  }
+}

@@ -1,0 +1,574 @@
+# Forge manifest of the app: the project settings page, the admin page, the work item action, the Field Assistant Rovo
+# agent with its actions, the approval trigger, the scheduled jobs, scopes and resources. Every function listed here
+# passes the SUPERPORT kill switch (src/maintenance.js) first.
+#
+# @file        manifest.yml
+# @app         Custom Field Self-Service for Jira
+# @author      George Papasotiriou
+# @company     SUPERPORT
+# @created     2026-10-26
+# @updated     2026-11-05
+
+modules:
+  jira:projectSettingsPage:
+    - key: custom-field-self-service
+      title: Custom Field Self-Service for Jira
+      icon: resource:branding;app-icon-64.png
+      resource: main-ui
+      resolver:
+        function: resolver
+  jira:adminPage:
+    - key: cfs-admin
+      title: Custom Field Self-Service for Jira
+      icon: resource:branding;app-icon-64.png
+      resource: main-ui
+      resolver:
+        function: admin-resolver
+  jira:issueAction:
+    - key: cfs-issue-action
+      title: Request a custom field
+      resource: issue
+      render: native
+      resolver:
+        function: resolver
+  rovo:agent:
+    - key: field-assistant
+      name: Field Assistant
+      icon: resource:branding;app-icon-128.png
+      description: Request and maintain custom fields, checked against the guidelines. Previews every change with its impact; changes run only after you confirm, with project admin or Jira administrator approval where needed.
+      prompt: resource:agent-prompt;prompt.txt
+      conversationStarters:
+        - I need a new dropdown field in my project
+        - Show the custom fields of my project
+        - Add an option to a select field
+        - Which fields in my project are unused?
+        - What is the status of my requests?
+        - Is Custom Field Self-Service for Jira ready on this site?
+      actions:
+        - cfs-list-fields
+        - cfs-field-options
+        - cfs-find-similar-fields
+        - cfs-preview-new-field
+        - cfs-preview-option-change
+        - cfs-preview-reuse
+        - cfs-preview-bundle
+        - cfs-submit-plan
+        - cfs-field-health
+        - cfs-guidelines
+        - cfs-my-requests
+        - cfs-request-details
+        - cfs-site-readiness
+        - cfs-site-fix
+        # Bulk changes are switched off (src/shared/features.js); add cfs-preview-bulk, cfs-preview-replace,
+        # cfs-bulk-status and cfs-undo-bulk here again to bring them back.
+  action:
+    - key: cfs-list-fields
+      name: List project custom fields
+      function: act-list-fields
+      actionVerb: GET
+      description: Lists the custom fields of a Jira project with type, context scope (project, shared, global) and whether options can be changed directly, with approval, or not at all.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Key of the Jira project
+    - key: cfs-field-options
+      name: Show field options and usage
+      function: act-field-options
+      actionVerb: GET
+      description: Shows the options of one select-type custom field in a project, which are disabled or unused, and in how many work items each option is used.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Key of the Jira project
+        field:
+          title: Field
+          type: string
+          required: true
+          description: Field name or field ID (customfield_12345)
+    - key: cfs-find-similar-fields
+      name: Find similar fields
+      function: act-find-similar
+      actionVerb: GET
+      description: Returns existing custom fields and catalogue fields of the same type so you can judge whether a requested field already exists under another name or in another language.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Key of the Jira project
+        name:
+          title: Requested name
+          type: string
+          required: true
+          description: Name of the field the user wants
+        fieldType:
+          title: Field type
+          type: string
+          required: false
+          description: dropdown, multi select, checkboxes, radio, text, paragraph, number, date, user or labels
+    - key: cfs-preview-new-field
+      name: Preview a new field
+      function: act-preview-new-field
+      actionVerb: GET
+      description: Runs the guideline check for a new custom field and returns green, yellow or red, who must approve, and a plan ID. Changes nothing. Submit the plan ID with submit-plan only after the user confirmed.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Key of the Jira project the field is for
+        name:
+          title: Field name
+          type: string
+          required: true
+          description: Name of the new field
+        description:
+          title: Description
+          type: string
+          required: true
+          description: What the field contains
+        fieldType:
+          title: Field type
+          type: string
+          required: true
+          description: dropdown, multi select, checkboxes, radio, text, paragraph, number, date, date and time, user or labels (cascading select is not offered for new fields)
+        options:
+          title: Options
+          type: string
+          required: false
+          description: Options separated by semicolons
+        justification:
+          title: Justification
+          type: string
+          required: true
+          description: What the field is needed for
+        defaultValue:
+          title: Default value
+          type: string
+          required: false
+          description: Optional default; for select fields one of the options
+        global:
+          title: Global context
+          type: boolean
+          required: false
+          description: true only if the user explicitly wants the field in all projects
+        similarToFieldId:
+          title: Possible duplicate
+          type: string
+          required: false
+          description: Field ID of an existing field that may mean the same (from find similar fields)
+        addToScreens:
+          title: Add to screens
+          type: boolean
+          required: false
+          description: Add the new field to the project's own screens (default true)
+    - key: cfs-preview-option-change
+      name: Preview an option change
+      function: act-preview-options
+      actionVerb: GET
+      description: Computes an option change (add, rename, disable, enable, sort, clean up unused) with its impact on work items, saved filters and automation rules, who must approve, and a plan ID. Changes nothing. Options are never deleted.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Key of the Jira project
+        field:
+          title: Field
+          type: string
+          required: true
+          description: Field name or field ID
+        add:
+          title: Add
+          type: string
+          required: false
+          description: New options separated by semicolons (cascading Parent > Child); added at the end
+        rename:
+          title: Rename
+          type: string
+          required: false
+          description: Pairs Old => New separated by semicolons
+        disable:
+          title: Disable
+          type: string
+          required: false
+          description: Options to disable, separated by semicolons
+        enable:
+          title: Enable
+          type: string
+          required: false
+          description: Options to re-enable, separated by semicolons
+        sort:
+          title: Sort
+          type: string
+          required: false
+          description: a-z to sort alphabetically, usage to put the most used options first (disabled ones last)
+        defaultValue:
+          title: Default value
+          type: string
+          required: false
+          description: The one option to make the default (cascading Parent > Child), or none to remove the default
+        disableUnused:
+          title: Disable unused
+          type: boolean
+          required: false
+          description: Disable every option that no work item uses
+        fixMyFilters:
+          title: Fix my filters
+          type: boolean
+          required: false
+          description: On a rename, also update the old value in saved filters the user owns (only if the user asked)
+    - key: cfs-preview-reuse
+      name: Preview reusing a field
+      function: act-preview-reuse
+      actionVerb: GET
+      description: Shows what it takes to use an existing custom field in the project instead of creating a duplicate, who must approve, and a plan ID. Changes nothing.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Key of the Jira project that wants to use the field
+        field:
+          title: Field
+          type: string
+          required: true
+          description: Field name or field ID of the existing field
+        addToScreens:
+          title: Add to screens
+          type: boolean
+          required: false
+          description: Add the field to the project's own screens (default true)
+    - key: cfs-preview-bundle
+      name: Preview an onboarding bundle
+      function: act-preview-bundle
+      actionVerb: GET
+      description: Plans several standard fields from the catalogue for a project in one go (reuse existing ones, create the others), with a plan ID. Changes nothing.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Key of the Jira project
+        entries:
+          title: Catalogue entries
+          type: string
+          required: true
+          description: Catalogue field names separated by semicolons, or all
+    - key: cfs-submit-plan
+      name: Submit a previewed plan
+      function: act-submit-plan
+      actionVerb: CREATE
+      description: Carries out exactly what a preview showed, identified only by its plan ID, after the user clearly confirmed. Depending on the preview it executes at once, goes to the project admins or to a Jira administrator for approval.
+      inputs:
+        planId:
+          title: Plan ID
+          type: string
+          required: true
+          description: The plan ID returned by a preview action (P-XXXXXX)
+    - key: cfs-field-health
+      name: Field health
+      function: act-field-health
+      actionVerb: GET
+      description: Lists custom fields of a project that look unused, are on no screen or may duplicate another field, and suggestions for new fields or text fields that should be dropdowns.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Key of the Jira project
+    - key: cfs-guidelines
+      name: Custom field guidelines
+      function: act-guidelines
+      actionVerb: GET
+      description: Returns the custom field guidelines - allowed types, naming convention, option limits, what is green, yellow or red, who may change what, and the catalogue of standard fields.
+      inputs:
+        topic:
+          title: Topic
+          type: string
+          required: false
+          description: Optional topic of the question
+    - key: cfs-my-requests
+      name: My requests
+      function: act-my-requests
+      actionVerb: GET
+      description: Status of the user's own custom field requests, their saved draft, and who the project admins are.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: false
+          description: Optional key of a Jira project
+    - key: cfs-request-details
+      name: Request details
+      function: act-request-details
+      actionVerb: GET
+      description: Details of one custom field approval request (changes, risk, briefing, approvers) for its requester, approvers and admins.
+      inputs:
+        issueKey:
+          title: Request key
+          type: string
+          required: true
+          description: Key of the approval request, e.g. CFS-12
+    - key: cfs-preview-bulk
+      name: Preview a bulk option change
+      function: act-preview-bulk
+      actionVerb: GET
+      description: Project admins (own-space fields) and Jira admins. Previews one option change across many fields (retire, restore, rename, add) with fields, work items, defaults and a plan ID. Changes nothing.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Key of the Jira project
+        op:
+          title: Operation
+          type: string
+          required: true
+          description: retire, restore, rename or add (to replace an option in work items use preview-replace)
+        value:
+          title: Option value
+          type: string
+          required: true
+          description: The option to retire, restore, rename or replace, or the new option to add
+        newValue:
+          title: New name
+          type: string
+          required: false
+          description: For rename - the new name
+        fields:
+          title: Only these fields
+          type: string
+          required: false
+          description: Field names or IDs, comma-separated; empty = all option fields of the project
+        like:
+          title: Add next to
+          type: string
+          required: false
+          description: For add - add to every field that already has this option
+        position:
+          title: Position
+          type: string
+          required: false
+          description: For add - end, after (right after the like option) or a-z
+        keepDefaults:
+          title: Keep defaults
+          type: boolean
+          required: false
+          description: For retire - true skips fields where the option is the default value instead of clearing it
+        jobId:
+          title: Job ID
+          type: string
+          required: false
+          description: Continue a preview that was still scanning (returned by an earlier call)
+    - key: cfs-preview-replace
+      name: Preview replacing an option in work items
+      function: act-preview-replace
+      actionVerb: GET
+      description: Project admins (own-space fields) and Jira admins. Previews replacing one option by another in every work item that has it, then retiring the old one. Returns fields, work items, defaults and a plan ID. Changes nothing.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Key of the Jira project
+        value:
+          title: Old option
+          type: string
+          required: true
+          description: The option to replace, e.g. a discontinued model
+        newValue:
+          title: Replacement
+          type: string
+          required: true
+          description: The option every work item gets instead
+        fields:
+          title: Fields
+          type: string
+          required: true
+          description: The field names the user named, comma-separated, exactly as they wrote them. Write all ONLY if the user explicitly wants every field
+        retireOld:
+          title: Retire the old option
+          type: boolean
+          required: false
+          description: Default true; false keeps the old option selectable
+        addMissing:
+          title: Add missing replacement
+          type: boolean
+          required: false
+          description: True adds the replacement to fields that don't have it yet
+        jobId:
+          title: Job ID
+          type: string
+          required: false
+          description: Continue a preview that was still scanning
+    - key: cfs-bulk-status
+      name: Bulk change status
+      function: act-bulk-status
+      actionVerb: GET
+      description: For project admins. Status and results of a bulk change (fields changed, work items updated or restored), or the latest bulk changes of the project with their job IDs.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Key of the Jira project
+        jobId:
+          title: Job ID
+          type: string
+          required: false
+          description: The bulk change; empty = list the latest ones
+    - key: cfs-undo-bulk
+      name: Undo a bulk change
+      function: act-undo-bulk
+      actionVerb: UPDATE
+      description: For whoever ran the bulk change, or Jira admins. Undoes a whole finished bulk change - options back as before, work items get old values unless changed since; a project admin's undo may need approval. Only after confirmation.
+      inputs:
+        projectKey:
+          title: Project key
+          type: string
+          required: true
+          description: Key of the Jira project
+        jobId:
+          title: Job ID
+          type: string
+          required: true
+          description: The bulk change to undo (from bulk-status)
+    - key: cfs-site-readiness
+      name: Check site readiness
+      function: act-site-readiness
+      actionVerb: GET
+      description: For Jira admins. Checks whether Custom Field Self-Service for Jira is set up and compatible on this Jira site (projects, approval space, approvers, permissions, storage, self-test) and lists what needs attention, with the fixes the app can apply itself.
+      inputs:
+        focus:
+          title: Focus
+          type: string
+          required: false
+          description: Optional topic the user asked about, e.g. approvals or a project key
+    - key: cfs-site-fix
+      name: Apply site fixes
+      function: act-site-fix
+      actionVerb: UPDATE
+      description: For Jira admins, after they confirmed. Applies fixes offered by site readiness (only the app's own settings, its self-test field and its hidden request type) and checks the site again.
+      inputs:
+        fixIds:
+          title: Fix IDs
+          type: string
+          required: true
+          description: Comma-separated fix IDs from site readiness, or all
+  trigger:
+    - key: approval-listener
+      function: approval-listener-fn
+      events:
+        - avi:jira:updated:issue
+      filter:
+        ignoreSelf: true
+  scheduledTrigger:
+    - key: approval-sweep
+      function: approval-sweep-fn
+      interval: fiveMinute
+    - key: overview-prewarm
+      function: prewarm-fn
+      interval: hour
+    - key: daily-selftest
+      function: selftest-fn
+      interval: day
+    - key: nightly-checks
+      function: nightly-fn
+      interval: day
+    - key: weekly-digest
+      function: weekly-fn
+      interval: week
+  function:
+    - key: resolver
+      handler: index.handler
+    - key: admin-resolver
+      handler: index.adminHandler
+    - key: prewarm-fn
+      handler: index.prewarm
+      timeoutSeconds: 900
+    - key: selftest-fn
+      handler: index.selftest
+      timeoutSeconds: 900
+    - key: nightly-fn
+      handler: index.nightly
+      timeoutSeconds: 900
+    - key: weekly-fn
+      handler: index.weekly
+      timeoutSeconds: 900
+    - key: approval-listener-fn
+      handler: index.onIssueUpdated
+    - key: approval-sweep-fn
+      handler: index.sweep
+      timeoutSeconds: 300
+    - key: act-list-fields
+      handler: index.listFields
+    - key: act-field-options
+      handler: index.fieldOptions
+    - key: act-find-similar
+      handler: index.findSimilarFields
+    - key: act-preview-new-field
+      handler: index.previewNewFieldAction
+    - key: act-preview-options
+      handler: index.previewOptionsAction
+    - key: act-preview-reuse
+      handler: index.previewReuseAction
+    - key: act-preview-bundle
+      handler: index.previewBundleAction
+    - key: act-submit-plan
+      handler: index.submitPlanAction
+    - key: act-field-health
+      handler: index.fieldHealthAction
+    - key: act-guidelines
+      handler: index.guidelinesAction
+    - key: act-my-requests
+      handler: index.myRequestsAction
+    - key: act-request-details
+      handler: index.requestDetailsAction
+    - key: act-preview-bulk
+      handler: index.previewBulkAction
+    - key: act-preview-replace
+      handler: index.previewReplaceAction
+    - key: act-bulk-status
+      handler: index.bulkStatusAction
+    - key: act-undo-bulk
+      handler: index.undoBulkAction
+    - key: act-site-readiness
+      handler: index.siteReadinessAction
+    - key: act-site-fix
+      handler: index.siteFixAction
+resources:
+  - key: main-ui
+    path: static/main/build
+  - key: issue
+    path: src/frontend/issue.jsx
+  - key: agent-prompt
+    path: agent
+  - key: branding
+    path: branding
+permissions:
+  scopes:
+    - read:jira-work
+    - write:jira-work
+    - read:jira-user
+    - manage:jira-configuration
+    - manage:jira-project
+    - read:servicedesk-request
+    - write:servicedesk-request
+    - read:requesttype:jira-service-management
+    - write:requesttype:jira-service-management
+    - storage:app
+app:
+  # Paid via Atlassian (Marketplace). Production installs from the Marketplace get a license; development and staging
+  # (the team's DEV version) never do, and src/license.js only blocks an inactive license.
+  licensing:
+    enabled: true
+  runtime:
+    name: nodejs24.x
+    memoryMB: 256
+    architecture: arm64
+  id: ari:cloud:ecosystem::app/73eb7d75-cffc-403c-899b-1406d0b3826d

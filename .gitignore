@@ -1,0 +1,5 @@
+# Custom Field Self-Service for Jira - generated and local files
+node_modules/
+cfs-app/static/main/build/
+.forge/
+*.log

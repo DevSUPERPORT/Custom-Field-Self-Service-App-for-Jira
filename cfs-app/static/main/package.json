@@ -1,0 +1,29 @@
+{
+  "name": "cfs-main-ui",
+  "private": true,
+  "version": "4.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.2.8",
+    "@forge/bridge": "7.2.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "4.7.0",
+    "vite": "6.4.4"
+  },
+  "description": "Custom Field Self-Service for Jira: project page (Custom UI).",
+  "author": "George Papasotiriou, SUPERPORT (superport.digital)",
+  "license": "UNLICENSED",
+  "overrides": {
+    "prosemirror-view": "^1.42.3",
+    "fast-uri": "^3.1.9",
+    "glob": "^14.0.2",
+    "minimatch": "^11.0.1"
+  }
+}
