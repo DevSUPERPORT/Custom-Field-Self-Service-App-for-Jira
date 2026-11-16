@@ -8,17 +8,17 @@
  * @author      George Papasotiriou
  * @company     SUPERPORT
  * @created     2026-10-26
- * @updated     2026-11-05
+ * @updated     2026-11-16
  */
 
 import Resolver from '@forge/resolver';
 import { route } from '@forge/api';
 import * as J from './jira';
-import { getSettings, saveSettings, DEFAULTS, setupState } from './settings';
+import { getSettings, saveSettings, DEFAULTS, setupState, aiEnabled } from './settings';
 import { approvalSetup, cancelRequest, decideAsUser, prepareDecision, finishDecision } from './approvals';
 import { checkSpace, createRequestType } from './approvalspace';
 import { alertContent, alertWorkType, notifyUsers } from './ops';
-import { allPending, allRequests, readAllLogs } from './audit';
+import { allPending, allRequests, readAllLogs, writeLog } from './audit';
 import { requestStatus } from './shared/status';
 import { safeModeState, clearAutoSafeMode } from './guards';
 import { formatCatalogue } from './shared/catalogue';
@@ -32,6 +32,7 @@ import { CREATABLE, typeByKey } from './shared/fieldtypes';
 import { requestDiff } from './shared/diff';
 import { kvs } from '@forge/kvs';
 import { gateResolvers, availability, refusal } from './maintenance';
+import { vendorAiStop } from './aibudget';
 
 // Checked with the app's own rights for the accountId Jira provides, so no per-user consent is needed.
 const assertJiraAdmin = async (accountId) => {
@@ -85,6 +86,8 @@ resolver.define('state', handle(async () => {
   return {
     production,
     settings: s,
+    // SUPERPORT stopped the AI features for all sites (AI_BUDGET): the admin's own switch is kept but has no effect.
+    aiStopped: vendorAiStop(),
     // Display names of the people in the settings' user pickers.
     people: approverNames,
     checklist: { ...setupState(s, selfTestField, siteCheck), selfTestFieldName: selfTestField ? selfTestField.name : SELFTEST_FIELD_NAME },
@@ -155,7 +158,17 @@ resolver.define('siteFix', handle(({ payload, accountId }) => applyFixes(payload
 // Setup checklist: creates the field the daily self-test edits and restores, in the approval space only.
 resolver.define('createSelfTestField', handle(({ accountId }) => createSelfTestField(accountId)));
 
-resolver.define('save', handle(({ payload, accountId }) => saveSettings(payload.settings || {}, accountId)));
+// Only Jira administrators get here (handle checks "Administer Jira" with Jira for every call). Switching the AI
+// features (EULA 8.4) on or off is written to the site-wide audit log: who, when, on/off.
+resolver.define('save', handle(async ({ payload, accountId }) => {
+  const before = await aiEnabled();
+  const saved = await saveSettings(payload.settings || {}, accountId);
+  if (saved.aiEnabled !== before) {
+    const word = (on) => (on ? 'on' : 'off');
+    await writeLog('', [{ action: 'AI features', option: `Field Assistant (Rovo) ${word(saved.aiEnabled)}`, old: word(before), new: word(saved.aiEnabled), actor: accountId, via: 'app settings, by a Jira administrator', executed: true }]);
+  }
+  return saved;
+}));
 
 resolver.define('selftest', handle(() => runSelfTest('admin page')));
 

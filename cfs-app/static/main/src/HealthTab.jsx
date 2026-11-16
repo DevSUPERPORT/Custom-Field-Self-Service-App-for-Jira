@@ -8,11 +8,11 @@
  * @author      George Papasotiriou
  * @company     SUPERPORT
  * @created     2026-10-26
- * @updated     2026-11-06
+ * @updated     2026-11-16
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { call, Msg, Skeleton, Loz, IssueLink, askAssistant, when, useToast, useAutoRefresh, Icon, Modal, Note, useCanWrite, PAUSED_HINT } from './ui';
+import { call, Msg, Skeleton, Loz, IssueLink, askAssistant, useAiOn, when, useToast, useAutoRefresh, Icon, Modal, Note, useCanWrite, PAUSED_HINT } from './ui';
 import { t, tn, getLocale } from './i18n';
 import { cleanupSuggestions } from '../../../src/shared/health.js';
 
@@ -73,6 +73,7 @@ const CLEANUP = {
 };
 
 function Cleanup({ items, admin, here, projectKey, onShow, onSelect }) {
+  const aiOn = useAiOn();
   if (!items.length) return <p className="muted">{t('No clean-up needed: every field is used, on a screen and unique.')}</p>;
   return (
     <div className="stack">
@@ -84,7 +85,7 @@ function Cleanup({ items, admin, here, projectKey, onShow, onSelect }) {
             <div className="row">
               <button type="button" className="btn line small" onClick={() => onShow(s)}>{t('Show them')}</button>
               {admin && c.select ? <button type="button" className="btn small" onClick={() => onSelect(s)}>{t('Select them')}</button> : null}
-              {admin && c.ask ? <button type="button" className="btn ai small" onClick={() => askAssistant(c.ask(s.fieldIds.slice(0, 60), projectKey))}>✦ {t('Ask Field Assistant')}</button> : null}
+              {admin && aiOn && c.ask ? <button type="button" className="btn ai small" onClick={() => askAssistant(c.ask(s.fieldIds.slice(0, 60), projectKey))}>✦ {t('Ask Field Assistant')}</button> : null}
             </div>
           </div>
         );
@@ -96,6 +97,7 @@ function Cleanup({ items, admin, here, projectKey, onShow, onSelect }) {
 // Nightly suggestions: text fields that should be dropdowns, and "Key: Value" information people type by hand.
 function Suggestions({ data, projectKey, onChanged, admin }) {
   const canWrite = useCanWrite();
+  const aiOn = useAiOn();
   const toast = useToast();
   const [names, setNames] = useState({});
   const [migrate, setMigrate] = useState({});
@@ -134,7 +136,7 @@ function Suggestions({ data, projectKey, onChanged, admin }) {
       ) : (
         <div key={s.key} className="card spread">
           <div><strong>{t('People type “{key}: …” by hand', { key: s.key })}</strong><div><small>{t('{n} mentions in recent work items', { n: s.count })}{admin ? ` (${t('e.g. {examples}', { examples: s.examples.join(', ') })}): ${s.values.slice(0, 8).map((v) => `${v.value} (${v.count})`).join(', ')}` : ''}</small></div></div>
-          {admin ? <button type="button" className="btn ai small" onClick={() => askAssistant(`Project ${projectKey}: people write "${s.key}: ..." in summaries or labels, with the values ${s.values.slice(0, 12).map((v) => v.value).join(', ')}. Check whether a field for this exists and, if not, preview a dropdown "${s.key}" with these options.`)}>✦ {t('Turn into a field')}</button> : null}
+          {admin && aiOn ? <button type="button" className="btn ai small" onClick={() => askAssistant(`Project ${projectKey}: people write "${s.key}: ..." in summaries or labels, with the values ${s.values.slice(0, 12).map((v) => v.value).join(', ')}. Check whether a field for this exists and, if not, preview a dropdown "${s.key}" with these options.`)}>✦ {t('Turn into a field')}</button> : null}
         </div>
       )))}
     </div>
@@ -299,6 +301,7 @@ function ScreenJob({ mode, fields, onClose, onChanged }) {
 
 export default function HealthTab({ projectKey, onChanged, role, onOpenField, canOpen = () => false }) {
   const canWrite = useCanWrite();
+  const aiOn = useAiOn();
   const admin = role === 'jira-admin';
   const [data, setDataState] = useState(remembered.projectKey === projectKey ? remembered.data : null);
   const setData = (d) => { remembered.data = d; remembered.projectKey = projectKey; setDataState(d); };
@@ -377,7 +380,7 @@ export default function HealthTab({ projectKey, onChanged, role, onOpenField, ca
         <h3>{t('Fields')}</h3>
         <div className="row">
           {admin ? <button type="button" className="btn line" disabled={drift?.busy} onClick={checkDrift}><Icon name="refresh" />{drift?.busy ? t('Checking…') : t('Check for outside changes')}</button> : null}
-          <button type="button" className="btn ai" onClick={() => askAssistant(`Project ${projectKey}: look at the field health and propose a clean-up: which fields or options should be disabled, merged or retired, and why?`)}>✦ {t('Get a clean-up proposal')}</button>
+          {aiOn ? <button type="button" className="btn ai" onClick={() => askAssistant(`Project ${projectKey}: look at the field health and propose a clean-up: which fields or options should be disabled, merged or retired, and why?`)}>✦ {t('Get a clean-up proposal')}</button> : null}
         </div>
       </div>
       {drift?.error ? <Msg tone="error">{drift.error}</Msg> : null}

@@ -7,12 +7,12 @@
  * @author      George Papasotiriou
  * @company     SUPERPORT
  * @created     2026-10-26
- * @updated     2026-11-05
+ * @updated     2026-11-16
  */
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { view, realtime } from '@forge/bridge';
-import { call, Msg, Skeleton, ToastHost, useToast, askAssistant, when, Mark, Icon, Tabs, Note, vt, setPreview, LangSwitch, performUndo, recentlyActed, useCanWrite, PAUSED_HINT } from './ui';
+import { call, Msg, Skeleton, ToastHost, useToast, askAssistant, setAi, useAiOn, when, Mark, Icon, Tabs, Note, vt, setPreview, LangSwitch, performUndo, recentlyActed, useCanWrite, PAUSED_HINT } from './ui';
 import { undoPayload } from '../../../src/shared/undo.js';
 import { t } from './i18n';
 import Inbox from './Inbox';
@@ -134,10 +134,27 @@ function Main() {
     runBoot();
   }, [runBoot]);
 
-  // Remember the last complete field list for the next visit (this browser only; never the preview's).
+  // Remember the last complete field list for the next visit (this browser only; never the preview's). Without the AI
+  // state: that always comes fresh from the server, so a cached "on" never shows an AI button that is now off.
   useEffect(() => {
-    if (me && !me.preview && data && !data.incomplete && cacheKey.current) writeCache(cacheKey.current, { me, overview: data });
+    if (me && !me.preview && data && !data.incomplete && cacheKey.current) writeCache(cacheKey.current, { me: { ...me, ai: undefined }, overview: data });
   }, [me, data]);
+
+  // AI features (ui.jsx): every AI button follows whoami's ai. A Jira administrator switches them on or off on the admin
+  // page; when this page is shown again afterwards it asks the server once more, so no reload is needed.
+  const aiOn = useAiOn();
+  useEffect(() => { setAi(me?.ai); }, [me]);
+  useEffect(() => {
+    let last = Date.now();
+    const recheck = () => {
+      if (document.visibilityState !== 'visible' || Date.now() - last < 10000) return;
+      last = Date.now();
+      call('whoami').then((w) => { if (w && w.ai) setMe((m) => (m ? { ...m, ai: w.ai } : m)); }).catch(() => null);
+    };
+    document.addEventListener('visibilitychange', recheck);
+    window.addEventListener('focus', recheck);
+    return () => { document.removeEventListener('visibilitychange', recheck); window.removeEventListener('focus', recheck); };
+  }, []);
 
   // "View as project admin" (Jira administrators): the whole page again with a project admin's role, reading only.
   const preview = !!me?.preview;
@@ -251,7 +268,7 @@ function Main() {
               <span className={`live ${live ? 'on' : ''}`} title={live ? t('This page updates by itself when something changes') : t('Live updates unavailable')} data-tour="live"><span className="dot" />{live ? t('live') : t('offline')}</span>
               <button type="button" className="btn ghost small" onClick={() => setTour((x) => ({ ...(x || {}), open: true }))} data-tour="tour">{t('Tour')}</button>
               {admin || preview ? <button type="button" className="btn ghost small" aria-pressed={preview} onClick={togglePreview} title={t('See this page the way the project admins of this space see it')}><Icon name="eye" />{preview ? t('Back to my view') : t('View as project admin')}</button> : null}
-              <button type="button" className="btn ai small" onClick={() => askAssistant(`I work in project ${projectKey}. What can you do for me here? Keep it short.`)} data-tour="assistant"><Icon name="spark" />{t('Ask Field Assistant')}</button>
+              {aiOn ? <button type="button" className="btn ai small" onClick={() => askAssistant(`I work in project ${projectKey}. What can you do for me here? Keep it short.`)} data-tour="assistant"><Icon name="spark" />{t('Ask Field Assistant')}</button> : null}
               {me ? (
                 <button type="button" className="btn primary" disabled={!canWrite} title={canWrite ? undefined : PAUSED_HINT()} onClick={() => go('new')} data-tour="cta"><Icon name="plus" />{admin ? t('Add field') : t('Request field')}</button>
               ) : null}
@@ -263,7 +280,7 @@ function Main() {
 
       <main className="page">
         {tour?.open && me ? (
-          <Tour role={me.role} approver={me.approver} policy={me.policy} projectKey={projectKey}
+          <Tour role={me.role} approver={me.approver} policy={me.policy} ai={aiOn} projectKey={projectKey}
             onClose={() => { setTour({ ...tour, open: false }); if (!tour.seen) { call('tourSeen').catch(() => null); setTour({ ...tour, seen: true, open: false }); } }}
             onGo={(k) => { setField(null); setTab(k); }} />
         ) : null}

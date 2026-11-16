@@ -8,7 +8,7 @@
  * @author      George Papasotiriou
  * @company     SUPERPORT
  * @created     2026-10-26
- * @updated     2026-11-05
+ * @updated     2026-11-16
  */
 
 import Resolver from '@forge/resolver';
@@ -21,7 +21,7 @@ import { createApprovalRequest, withdrawRequest } from './approvals';
 import { todosFor, resolveTodo, dismissTodo } from './followups';
 import { requestsOf, requestsForProject } from './audit';
 import { requestStatus } from './shared/status';
-import { getSettings, isEnabledFor, saveSettings } from './settings';
+import { getSettings, isEnabledFor, saveSettings, aiState } from './settings';
 import { seenProjects, allPending, readLog } from './audit';
 import { runSelfTest } from './selftest';
 import { decideAsUser, prepareDecision, finishDecision } from './approvals';
@@ -249,9 +249,12 @@ resolver.define('driftCheckNow', handle(({ projectKey }) => driftNow(projectKey)
 resolver.define('healthTakeOut', handle(({ projectKey, payload, accountId }) => FA.takeOutOfUse({ projectKey, accountId, fieldId: String(payload.fieldId || '') }), { role: 'jira-admin' }));
 
 // Who is looking: decides which tabs and actions the page offers (the server checks every call again anyway).
+// ai: { enabled, stopped } (settings.js aiState): while enabled is false the page shows no AI button and the tour no
+// Field Assistant step. Read fresh, never throws.
 const whoamiOf = async ({ role, accountId, preview = false }) => {
-  const settings = await getSettings();
+  const [settings, ai] = await Promise.all([getSettings(), aiState()]);
   return {
+    ai,
     role,
     preview,
     approver: [...settings.approverAccountIds, ...settings.backupApproverAccountIds].includes(accountId),
@@ -365,7 +368,8 @@ resolver.define('issueContext', handle(async ({ projectKey, context, accountId }
   const settings = await getSettings();
   const admins = isAdmin ? null : await J.projectAdmins(projectKey, settings.stage1MaxApprovers).catch(() => ({ users: [] }));
   const asked = admins ? (settings.requesterAsReporter ? admins.users.filter((u) => u.accountId !== accountId) : admins.users.filter((u) => settings.approverAccountIds.includes(u.accountId))) : [];
-  return { projectKey, issueKey: context.extension?.issue?.key, isAdmin, admins: asked.map((u) => u.displayName) };
+  // The dialog hands the request to the Field Assistant: while the AI features are off it says so instead.
+  return { projectKey, issueKey: context.extension?.issue?.key, isAdmin, admins: asked.map((u) => u.displayName), ai: await aiState() };
 }, { role: 'none' }));
 
 // ---------- v5: inbox, decisions, what's new, drafts, impact radar, text to dropdown, bundle ----------

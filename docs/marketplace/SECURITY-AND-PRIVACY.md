@@ -11,7 +11,7 @@ service outside Atlassian, keeps its data in Forge storage, and acts only within
 | Authentication | Jira sign-in only; the app has no logins, passwords or tokens of its own |
 | Secrets in code | None |
 | Personal data | Atlassian account IDs only (who requested, approved or changed something); reported weekly to Atlassian, erased for closed accounts |
-| AI | The Rovo agent "Field Assistant" uses Atlassian Rovo; it acts only through the app's own actions, with the user's rights, and previews every change before the user confirms it |
+| AI | The Rovo agent "Field Assistant" uses Atlassian Rovo; it acts only through the app's own actions, with the user's rights, and previews every change before the user confirms it. AI features are off by default; only a Jira administrator can turn them on (admin page → Configuration → AI features), and every switch is logged |
 | Vulnerability handling | See SECURITY.md in the repository root and the emergency switch below |
 
 ## Scopes and why each is needed

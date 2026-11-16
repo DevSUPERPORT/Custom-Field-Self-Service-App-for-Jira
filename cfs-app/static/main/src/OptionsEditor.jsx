@@ -7,14 +7,14 @@
  * @author      George Papasotiriou
  * @company     SUPERPORT
  * @created     2026-10-26
- * @updated     2026-11-05
+ * @updated     2026-11-16
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Picker from './Picker';
 import { computePlan, describePlan, validateTree, planIsEmpty, sortAlphabetically } from '../../../src/shared/options.js';
 import { splitLines, norm } from '../../../src/shared/status.js';
-import { call, Msg, Skeleton, Modal, IssueLink, useToast, askAssistant, Icon, Note, Segmented, Tick, useFlip, performUndo, useCanWrite, PAUSED_HINT } from './ui';
+import { call, Msg, Skeleton, Modal, IssueLink, useToast, askAssistant, useAiOn, Icon, Note, Segmented, Tick, useFlip, performUndo, useCanWrite, PAUSED_HINT } from './ui';
 import { t, tn, fmtNum } from './i18n';
 
 const clone = (tree) => tree.map((p) => ({ ...p, children: (p.children || []).map((c) => ({ ...c })) }));
@@ -121,6 +121,7 @@ function OptionRows({ items, original, usage, onChange, onDefault, parentKey, ca
 
 export default function OptionsEditor({ field, fields, rules, projectKey }) {
   const canWrite = useCanWrite();
+  const aiOn = useAiOn();
   const toast = useToast();
   const [state, setState] = useState({ loading: true });
   const [tree, setTree] = useState([]);
@@ -357,7 +358,7 @@ export default function OptionsEditor({ field, fields, rules, projectKey }) {
               <span>{radar.rules?.indexed ? (radar.rules.hiddenCount ? t('{n} automation rule(s) use this field (a Jira administrator sees which).', { n: radar.rules.hiddenCount }) : radar.rules.rules.length ? t('Automation rules: {names}', { names: radar.rules.rules.map((r) => r.name).join(', ') }) : t('No automation rule uses this field.')) : radar.rules?.note}</span>
             </Note>
           ) : null}
-          <button type="button" className="btn ai small" onClick={() => askAssistant(`Project ${projectKey}: help me clean up the options of "${field.name}" (${field.id}). Which ones look like duplicates or are unused?`)}><Icon name="spark" />{t('Ask Field Assistant to tidy up')}</button>
+          {aiOn ? <button type="button" className="btn ai small" onClick={() => askAssistant(`Project ${projectKey}: help me clean up the options of "${field.name}" (${field.id}). Which ones look like duplicates or are unused?`)}><Icon name="spark" />{t('Ask Field Assistant to tidy up')}</button> : null}
         </aside>
       </div>
 

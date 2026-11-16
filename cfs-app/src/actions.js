@@ -8,7 +8,7 @@
  * @author      George Papasotiriou
  * @company     SUPERPORT
  * @created     2026-10-26
- * @updated     2026-11-05
+ * @updated     2026-11-16
  */
 
 // Rovo agent "Field Assistant": actions over the same service as the settings page.
@@ -23,13 +23,26 @@ import { CREATABLE, typeByKey } from './shared/fieldtypes';
 import { similarity } from './shared/guidelines';
 import { cleanupSuggestions } from './shared/health';
 import { guidelinesMarkdown } from './shared/guidelinesDoc';
-import { getSettings, isEnabledFor } from './settings';
+import { getSettings, isEnabledFor, aiEnabled, AI_OFF_MESSAGE } from './settings';
 import { getDraft } from './plans';
 import { getPending, requestsForProject } from './audit';
 import { safeModeState } from './guards';
 import { runSiteCheck, lastSiteCheck, applyFixes } from './sitecheck';
-import { gateAction } from './maintenance';
+import { gateAction as gate } from './maintenance';
+import { vendorAiStop, AI_STOPPED_MESSAGE } from './aibudget';
+import { viaRovo } from './audit';
 import { licenseRefusal } from './license';
+
+// AI switch (EULA 8.4): every Rovo action does nothing unless a Jira administrator turned the AI features on in the
+// app settings (aiEnabled, off by default and for existing installations) and SUPERPORT has not stopped them for all
+// sites (AI_BUDGET, see aibudget.js). Checked on the server for every call.
+const aiOnly = (fn) => async (...args) => {
+  if (vendorAiStop()) return { error: AI_STOPPED_MESSAGE, aiDisabled: true, aiStopped: true, nothingChanged: true };
+  return (await aiEnabled()) ? fn(...args) : { error: AI_OFF_MESSAGE, aiDisabled: true, nothingChanged: true };
+};
+
+// Every Rovo action is marked: log entries and requests written during the call say they came via Rovo (EULA 8.4).
+const gateAction = (kind, fn) => gate(kind, viaRovo(aiOnly(fn)));
 
 // Kill switch (maintenance.js): every exported action is wrapped in gateAction(kind, ...). 'read' actions still answer
 // while changes are paused; 'write' actions are refused then. The previews count as writes: they store a plan and the

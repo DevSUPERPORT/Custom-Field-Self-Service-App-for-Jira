@@ -59,7 +59,7 @@ export default function AuditTab({ refreshKey, role }) {
     const logged = new Set(data.log.map((l) => String(l.via || '').split(': ')[1]).filter(Boolean));
     const waiting = data.requests.filter((r) => r.status === 'waiting' && !logged.has(r.issueKey)).map((r) => ({
       ts: r.created, actor: r.requester, approver: null, fieldName: r.payload?.fieldName || r.payload?.draft?.name || r.summary, fieldId: r.payload?.fieldId || '',
-      action: (r.rows || [])[0]?.action || t('Request'), option: (r.rows || [])[0]?.option || '', old: (r.rows || [])[0]?.old || '', new: (r.rows || [])[0]?.new || '', via: `requested: ${r.issueKey}`, issueKey: r.issueKey, status: 'waiting',
+      action: (r.rows || [])[0]?.action || t('Request'), option: (r.rows || [])[0]?.option || '', old: (r.rows || [])[0]?.old || '', new: (r.rows || [])[0]?.new || '', via: `requested: ${r.issueKey}`, issueKey: r.issueKey, status: 'waiting', agent: r.agent,
     }));
     const open = new Set(data.requests.filter((r) => r.status === 'waiting').map((r) => r.issueKey));
     const shown = data.log.filter((l) => !isRequestEntry(l) || open.has(keyOfEntry(l)));
@@ -149,7 +149,7 @@ export default function AuditTab({ refreshKey, role }) {
                 <tr key={`${l.ts}-${i}`} className="rise" style={{ '--i': i }}>
                   <td className="top">{undoCell(l)}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{when(l.ts)}</td>
-                  <td>{name(l.actor) || '–'}</td>
+                  <td>{name(l.actor) || '–'}{l.agent ? <div><small className="muted">{t('via Rovo')}</small></div> : null}</td>
                   <td>{name(l.approver) || '–'}</td>
                   <td><div className="fname">{l.fieldName || '–'}</div>{l.fieldId ? <div className="fid">{l.fieldId}</div> : null}</td>
                   <td className="top">

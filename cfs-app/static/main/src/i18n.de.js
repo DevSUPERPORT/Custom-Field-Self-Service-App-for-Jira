@@ -7,7 +7,7 @@
  * @author      George Papasotiriou
  * @company     SUPERPORT
  * @created     2026-10-26
- * @updated     2026-11-05
+ * @updated     2026-11-16
  */
 
 // Wording follows the SUPERPORT app design: Projekt, Projekt-Admin, Jira-Admin, Vorgang, Freigabe, Antrag, Screen,
@@ -71,6 +71,13 @@ const DE = {
   'A Jira administrator approves the reuse.': 'Ein Jira-Admin gibt die Wiederverwendung frei.',
   'A change touching this many work items needs approval.': 'Eine Änderung, die so viele Vorgänge betrifft, braucht eine Freigabe.',
   About: 'Über das Feld',
+  'AI features': 'KI-Funktionen',
+  'AI features (Rovo agent)': 'KI-Funktionen (Rovo-Agent)',
+  'Off by default. When on, the Field Assistant can be used in Rovo and the AI buttons appear in the app. AI results can be wrong and must be reviewed.': 'Standardmäßig aus. Wenn an, kann der Field Assistant in Rovo genutzt werden und die KI-Schaltflächen erscheinen in der App. KI-Ergebnisse können falsch sein und müssen geprüft werden.',
+  'AI features are on. The Field Assistant answers in Rovo, within each person\'s own Jira permissions, and the AI buttons are shown in the app.': 'KI-Funktionen sind an. Der Field Assistant antwortet in Rovo, im Rahmen der eigenen Jira-Berechtigungen jeder Person, und die KI-Schaltflächen werden in der App angezeigt.',
+  'AI features are off. The Field Assistant (Rovo) and all AI buttons are hidden.': 'KI-Funktionen sind aus. Der Field Assistant (Rovo) und alle KI-Schaltflächen sind ausgeblendet.',
+  'Only Jira administrators can change this; every change is logged in the audit log. Applies once you save.': 'Nur Jira-Admins können das ändern; jede Änderung steht im Audit-Log. Gilt, sobald du speicherst.',
+  'Temporarily turned off by the app vendor. Your setting is kept and applies again once AI is available.': 'Vorübergehend vom App-Anbieter ausgeschaltet. Deine Einstellung bleibt gespeichert und gilt wieder, sobald die KI freigegeben ist.',
   Action: 'Aktion',
   Add: 'Hinzufügen',
   'Add a new field': 'Neues Feld anlegen',
@@ -445,6 +452,7 @@ const DE = {
   'Request type "{name}" created and selected. Save the settings to keep the rest of your changes.': 'Anfragetyp „{name}“ angelegt und ausgewählt. Speichere die Einstellungen, um deine übrigen Änderungen zu behalten.',
   Requested: 'Beantragt',
   'Requested by': 'Anfragende Person',
+  'via Rovo': 'über Rovo',
   'Requested by {name} on {date}': 'Beantragt von {name} am {date}',
   'Requested on {date}': 'Beantragt am {date}',
   'Requested on {date} by {name} · approval request': 'Beantragt am {date} von {name} · Freigabe-Vorgang',

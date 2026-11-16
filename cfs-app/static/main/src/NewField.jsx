@@ -7,13 +7,13 @@
  * @author      George Papasotiriou
  * @company     SUPERPORT
  * @created     2026-10-26
- * @updated     2026-11-05
+ * @updated     2026-11-16
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CREATABLE, typeByKey } from '../../../src/shared/fieldtypes.js';
 import { splitLines, norm } from '../../../src/shared/status.js';
-import { call, Msg, Skeleton, IssueLink, useToast, askAssistant, Icon, Note, Segmented, Tick, useCanWrite, PAUSED_HINT } from './ui';
+import { call, Msg, Skeleton, IssueLink, useToast, askAssistant, useAiOn, Icon, Note, Segmented, Tick, useCanWrite, PAUSED_HINT } from './ui';
 import { t, tn } from './i18n';
 
 const EMPTY = { name: '', description: '', typeKey: 'select', optionsText: '', defaultValue: '', global: false, justification: '', addToScreens: true };
@@ -63,6 +63,7 @@ function SpaceSearch({ projects, selected, max, onAdd }) {
 
 export default function NewField({ fields, onChanged, role, onBack, onMine, safe = false }) {
   const canWrite = useCanWrite();
+  const aiOn = useAiOn();
   const admin = role === 'jira-admin';
   const toast = useToast();
   const [meta, setMeta] = useState(null);
@@ -212,7 +213,7 @@ export default function NewField({ fields, onChanged, role, onBack, onMine, safe
           <button type="button" className="linkish" onClick={onBack}><Icon name="left" />{t('All fields')}</button>
           <h2>{admin ? t('Add a new field') : t('Request a new field')}</h2>
         </div>
-        <button type="button" className="btn ai small" onClick={() => askAssistant(`Project ${meta.current}: I need a new custom field. Ask me what it should hold, one question at a time, then preview it.`)}><Icon name="spark" />{t('Describe it to Field Assistant instead')}</button>
+        {aiOn ? <button type="button" className="btn ai small" onClick={() => askAssistant(`Project ${meta.current}: I need a new custom field. Ask me what it should hold, one question at a time, then preview it.`)}><Icon name="spark" />{t('Describe it to Field Assistant instead')}</button> : null}
       </div>
       {restored ? (
         <Note icon="history" tone="accent">

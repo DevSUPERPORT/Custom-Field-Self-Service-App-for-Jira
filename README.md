@@ -41,7 +41,7 @@ the changes that matter for approval.
 | ✅ **Approvals where they matter** | Requests land in your Jira Service Management space; Jira admins see a before/after picture and approve or reject in one click. Large changes need two people |
 | ↩️ **Undo and audit log** | Who changed what, when and with whose approval. Undo from the log or straight from the notification |
 | 🩺 **Field health** | Finds unused, hidden, stale and duplicate fields, with clean-up suggestions. Project admins see only their own space |
-| ✨ **Field Assistant (Rovo)** | Prepares requests in a conversation and previews every change; nothing runs before the user confirms |
+| ✨ **Field Assistant (Rovo)** | Prepares requests in a conversation and previews every change; nothing runs before the user confirms. Off by default: a Jira administrator turns it on under Configuration → **AI features (Rovo agent)** on the admin page. SUPERPORT can turn AI features off for all sites through App Status (Forge variable `AI_BUDGET`, `{"stop":true}`) |
 | 🔒 **Runs on Atlassian** | No calls outside Atlassian. Data stays in Forge storage under your data residency |
 
 ## Screenshots
@@ -80,6 +80,16 @@ Jira on the server for every call. The browser never decides who may do what.
 | **Jira administrator** | Configure the app, see the health of every field on the site, change fields directly (logged, undoable), approve requests |
 | **Project administrator** | Manage the fields their space uses, request changes, undo their own changes as a request; field health shows only their space |
 | **Everyone else** | Request a field from any work item; the project admins decide first |
+
+## Platform limits
+
+The app runs on Atlassian Forge. Atlassian limits compute time, storage, invocations and API requests for all Forge
+apps (quotas and rate limits). What this means in practice:
+
+- On large projects, the field overview and field health take a moment to build; the app keeps them in a short-lived
+  cache, so later views are faster.
+- If a limit is reached during a change, the app shows an error instead of a success message. The audit log shows
+  what was applied, and undo stays available; try the rest again a little later.
 
 ## For the Atlassian Marketplace review
 

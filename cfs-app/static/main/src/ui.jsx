@@ -7,7 +7,7 @@
  * @author      George Papasotiriou
  * @company     SUPERPORT
  * @created     2026-10-26
- * @updated     2026-11-05
+ * @updated     2026-11-16
  */
 
 import React, { useEffect, useLayoutEffect, useState, createContext, useContext, useCallback, useRef } from 'react';
@@ -100,7 +100,29 @@ export const call = async (name, payload) => {
   return res;
 };
 
-export const askAssistant = (prompt) => rovo.open({ type: 'forge', agentName: 'Field Assistant', agentKey: 'field-assistant', prompt }).catch(() => null);
+// ---------- AI features (the Field Assistant in Rovo) ----------
+// Effectively on only when a Jira administrator switched them on AND SUPERPORT has not stopped them: the server says
+// so in whoami (ai: { enabled, stopped }). Until it has, they count as off. While off, every AI button and the tour's
+// Field Assistant step are hidden (useAiOn); the Rovo agent itself refuses every action on the server anyway.
+let aiOn = false;
+const aiListeners = new Set();
+export const isAiOn = () => aiOn;
+export const setAi = (ai) => {
+  const next = !!ai && ai.enabled === true;
+  if (next === aiOn) return;
+  aiOn = next;
+  aiListeners.forEach((fn) => fn(next));
+};
+export const useAiOn = () => {
+  const [on, setOn] = useState(aiOn);
+  useEffect(() => { setOn(aiOn); aiListeners.add(setOn); return () => { aiListeners.delete(setOn); }; }, []);
+  return on;
+};
+
+// Opens the Field Assistant in Rovo with a prompt; does nothing while the AI features are off.
+export const askAssistant = (prompt) => (aiOn
+  ? rovo.open({ type: 'forge', agentName: 'Field Assistant', agentKey: 'field-assistant', prompt }).catch(() => null)
+  : Promise.resolve(null));
 
 // Approve / Decline: the app checks the request, then the decision is posted from the page AS THE USER through Jira's
 // own connection (Jira checks the approver and asks for permission if needed), then the app carries it out. A

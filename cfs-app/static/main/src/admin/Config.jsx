@@ -7,7 +7,7 @@
  * @author      George Papasotiriou
  * @company     SUPERPORT
  * @created     2026-10-26
- * @updated     2026-11-05
+ * @updated     2026-11-16
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -374,7 +374,25 @@ export default function Config({ state, s, update, dirty, saving, saveError, onD
         </div>
       </Section>
 
-      <Section i={7} tour="cfg-guard" title={t('Guard rails')}
+      {/* The switch first, then one line on what it means now. While SUPERPORT has stopped the AI features (AI_BUDGET)
+          the vendor notice takes that line's place; the switch stays as saved and applies again afterwards. */}
+      <Section i={7} title={t('AI features')}
+        text={t('Off by default. When on, the Field Assistant can be used in Rovo and the AI buttons appear in the app. AI results can be wrong and must be reviewed.')}>
+        <div className="stack tight">
+          <div className="row">
+            <Check checked={s.aiEnabled === true} onChange={() => set('aiEnabled', s.aiEnabled !== true)}>{t('AI features (Rovo agent)')}</Check>
+            <Loz tone={s.aiEnabled === true && !state.aiStopped ? 'green' : undefined}>{s.aiEnabled === true ? t('on') : t('off')}</Loz>
+          </div>
+          {state.aiStopped
+            ? <Msg tone="warning">{t('Temporarily turned off by the app vendor. Your setting is kept and applies again once AI is available.')}</Msg>
+            : <div className="hint" style={{ marginTop: 0 }}>{s.aiEnabled === true
+              ? t('AI features are on. The Field Assistant answers in Rovo, within each person\'s own Jira permissions, and the AI buttons are shown in the app.')
+              : t('AI features are off. The Field Assistant (Rovo) and all AI buttons are hidden.')}</div>}
+          <small className="muted">{t('Only Jira administrators can change this; every change is logged in the audit log. Applies once you save.')}</small>
+        </div>
+      </Section>
+
+      <Section i={8} tour="cfg-guard" title={t('Guard rails')}
         text={t('Jira administrators change fields directly (the guard rails still apply); every change by a project admin is a request a Jira administrator approves, unless the option-change policy above lets them.')}>
         <div className="stack tight">
           <div className="row">
@@ -398,7 +416,7 @@ export default function Config({ state, s, update, dirty, saving, saveError, onD
         </div>
       </Section>
 
-      <Section i={8} wide title={t('Guidelines for new fields')} text={t('What the guideline check holds every new field request to.')}>
+      <Section i={9} wide title={t('Guidelines for new fields')} text={t('What the guideline check holds every new field request to.')}>
         <div className="grid-auto">
           <Num id="nameMin" label={t('Name: min. characters')} value={s.rules.nameMin} onChange={(v) => setRule('nameMin', v)} />
           <Num id="nameMax" label={t('Name: max. characters')} value={s.rules.nameMax} onChange={(v) => setRule('nameMax', v)} />

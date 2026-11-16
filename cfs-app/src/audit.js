@@ -7,19 +7,27 @@
  * @author      George Papasotiriou
  * @company     SUPERPORT
  * @created     2026-10-26
- * @updated     2026-11-05
+ * @updated     2026-11-13
  */
 
 //   log:<PROJECT>:<inverse time>:<n>   one executed change: who, when, field, old, new
 //   pending:<ISSUE KEY>                the stored change behind an approval request
 //   req:<PROJECT>:<inverse time>       index of a project's approval requests
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { kvs, WhereConditions } from '@forge/kvs';
+
+// EULA 8.4: changes made through the Field Assistant (Rovo) are marked as such. Every Rovo action runs inside viaRovo,
+// and every log entry and approval request written during that call carries agent: 'Rovo (Field Assistant)'.
+export const ROVO_AGENT = 'Rovo (Field Assistant)';
+const agentScope = new AsyncLocalStorage();
+export const viaRovo = (fn) => (...args) => agentScope.run(ROVO_AGENT, () => fn(...args));
+const agentMark = () => { const a = agentScope.getStore(); return a ? { agent: a } : {}; };
 
 const inv = (ts) => String(9999999999999 - ts).padStart(13, '0');
 
 export const writeLog = async (projectKey, entries) => {
   const ts = Date.now();
-  await Promise.all(entries.map((e, i) => kvs.set(`log:${projectKey}:${inv(ts)}:${String(i).padStart(3, '0')}`, { ts, projectKey, ...e })));
+  await Promise.all(entries.map((e, i) => kvs.set(`log:${projectKey}:${inv(ts)}:${String(i).padStart(3, '0')}`, { ts, projectKey, ...agentMark(), ...e })));
 };
 
 const listPrefix = async (prefix, max) => {
@@ -38,7 +46,7 @@ const listPrefix = async (prefix, max) => {
 export const readLog = (projectKey, max = 200) => listPrefix(`log:${projectKey}:`, max);
 
 export const savePending = async (issueKey, pending) => {
-  await kvs.set(`pending:${issueKey}`, pending);
+  await kvs.set(`pending:${issueKey}`, { ...agentMark(), ...pending });
   await kvs.set(`req:${pending.projectKey}:${inv(pending.created)}`, { issueKey, created: pending.created, summary: pending.summary, projectKey: pending.projectKey });
 };
 

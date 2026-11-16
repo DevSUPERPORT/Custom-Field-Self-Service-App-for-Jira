@@ -1,14 +1,14 @@
 /**
  * UI Kit work item action "Request a custom field": checks the kill switch first, tells non-admins who decides, and
  * hands the request to Field Assistant in Rovo. Shows a "temporarily unavailable" or "changes are paused" message
- * with a link to the status page when SUPERPORT has paused the app.
+ * with a link to the status page when SUPERPORT has paused the app, and no Field Assistant while the AI features are off.
  *
  * @file        src/frontend/issue.jsx
  * @app         Custom Field Self-Service for Jira
  * @author      George Papasotiriou
  * @company     SUPERPORT
  * @created     2026-10-26
- * @updated     2026-11-05
+ * @updated     2026-11-16
  */
 
 import React, { useEffect, useState } from 'react';
@@ -37,6 +37,25 @@ const MAINTENANCE_TEXT = {
   },
 };
 
+// While the AI features are off (a Jira administrator's switch, or SUPERPORT's stop) the dialog offers no Field
+// Assistant: it says why and where to go instead, in the words of the server's refusal (src/settings.js, aibudget.js).
+const AI_OFF_TEXT = {
+  en: {
+    title: 'Field Assistant is turned off',
+    off: 'The AI features of this app are turned off. A Jira administrator can turn them on in the app\'s Configuration (Jira settings > Apps > Custom Field Self-Service for Jira).',
+    stopped: 'The AI features of this app are temporarily turned off by the app vendor. Please try again later.',
+    admin: 'You can add or request the field on the project\'s Custom fields page.',
+    other: 'Ask a project admin of {key} for the field.',
+  },
+  de: {
+    title: 'Field Assistant ist ausgeschaltet',
+    off: 'Die KI-Funktionen dieser App sind ausgeschaltet. Ein Jira-Admin kann sie in der Konfiguration der App einschalten (Jira-Einstellungen > Apps > Custom Field Self-Service for Jira).',
+    stopped: 'Die KI-Funktionen dieser App sind vorübergehend vom App-Anbieter ausgeschaltet. Bitte versuche es später noch einmal.',
+    admin: 'Du kannst das Feld auf der Seite „Custom fields“ des Projekts anlegen oder beantragen.',
+    other: 'Bitte einen Projekt-Admin von {key} um das Feld.',
+  },
+};
+
 const App = () => {
   const ctx = useProductContext();
   const [state, setState] = useState(null);
@@ -53,7 +72,8 @@ const App = () => {
     });
   }, []);
   const followStatus = () => router.open(avail?.statusUrl || STATUS_PAGE_URL).catch(() => null);
-  const mt = MAINTENANCE_TEXT[/^de/i.test(ctx?.locale || '') ? 'de' : 'en'];
+  const lang = /^de/i.test(ctx?.locale || '') ? 'de' : 'en';
+  const mt = MAINTENANCE_TEXT[lang];
   if (avail?.mode === 'on') {
     return (
       <Stack space="space.200">
@@ -72,6 +92,21 @@ const App = () => {
   const p = ctx.extension.project;
   const appId = (ctx.localId || '').split('/')[1];
   const settingsUrl = `/jira/${PATH[p.type] || 'core'}/projects/${p.key}/settings/apps/${appId}/${ctx.environmentId}`;
+  if (state.ai?.enabled !== true) {
+    const at = AI_OFF_TEXT[lang];
+    return (
+      <Stack space="space.200">
+        <SectionMessage appearance="information" title={at.title}>
+          <Text>{state.ai?.stopped ? at.stopped : at.off}</Text>
+          <Text>{state.isAdmin ? at.admin : at.other.replace('{key}', p.key)}</Text>
+        </SectionMessage>
+        <ButtonGroup>
+          {state.isAdmin ? <Button appearance="primary" onClick={() => router.navigate(settingsUrl)}>Open Custom fields</Button> : null}
+          <Button appearance="subtle" onClick={() => view.close()}>Close</Button>
+        </ButtonGroup>
+      </Stack>
+    );
+  }
   const ask = async () => {
     setOpenError('');
     try {

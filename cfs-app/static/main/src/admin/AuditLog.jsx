@@ -50,13 +50,13 @@ export default function AuditLog() {
       if (k) inLog.add(k);
       const st = logStatus(l);
       return {
-        id: `l${i}`, ts: l.ts, requester: name(l.actor), approver: name(l.approver), space: l.projectKey || '', field: l.fieldName || '',
+        id: `l${i}`, ts: l.ts, requester: name(l.actor) + (l.agent ? ` (${t('via Rovo')})` : ''), approver: name(l.approver), space: l.projectKey || '', field: l.fieldName || '',
         action: l.action, option: l.option, old: l.old, new: l.new, status: st, issueKey: k,
         reason: st === 'rejected' ? (l.reason || reqByKey[k]?.reason || '') : (l.reason || ''),
       };
     });
     const waiting = data.requests.filter((r) => r.status === 'waiting' && !inLog.has(r.issueKey)).map((r) => ({
-      id: `r${r.issueKey}`, ts: r.created, requester: name(r.requester), approver: name(r.approver), space: r.projectKey || '', field: r.fieldName || '',
+      id: `r${r.issueKey}`, ts: r.created, requester: name(r.requester) + (r.agent ? ` (${t('via Rovo')})` : ''), approver: name(r.approver), space: r.projectKey || '', field: r.fieldName || '',
       action: r.rows[0]?.action || t('Requested'), option: r.rows[0]?.option || r.summary, old: r.rows[0]?.old || '', new: r.rows[0]?.new || '',
       more: Math.max(0, r.rows.length - 1), status: 'waiting', issueKey: r.issueKey, reason: '',
     }));

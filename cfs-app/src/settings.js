@@ -7,13 +7,14 @@
  * @author      George Papasotiriou
  * @company     SUPERPORT
  * @created     2026-10-26
- * @updated     2026-11-05
+ * @updated     2026-11-16
  */
 
 import { kvs } from '@forge/kvs';
 import { CREATABLE } from './shared/fieldtypes';
 import { RULES } from './shared/guidelines';
 import { parseCatalogue } from './shared/catalogue';
+import { vendorAiStop } from './aibudget';
 
 export const DEFAULTS = {
   // Pilot scope: the app works only in these projects (page, agent, issue action). Empty = every project, but only
@@ -52,6 +53,8 @@ export const DEFAULTS = {
   maxContextProjects: 10, // spaces in a new field's context, the own one included (UC-04)
   auditRetentionMonths: 0, // audit entries older than this are deleted every night; 0 = keep forever (UC-07)
   screenPlacement: 'bottom', // new fields go to the bottom of the first tab, or 'smart': next to the most similar field
+  // AI features (the Field Assistant Rovo agent), EULA 8.4: off until a Jira administrator switches them on here.
+  aiEnabled: false,
   catalogue: [],
   rules: {
     nameMin: RULES.nameMin,
@@ -136,6 +139,8 @@ export const saveSettings = async (input, by) => {
     maxContextProjects: clampInt(input.maxContextProjects ?? cur.maxContextProjects, 1, 100, 10),
     auditRetentionMonths: clampInt(input.auditRetentionMonths ?? cur.auditRetentionMonths, 0, 120, 0),
     screenPlacement: (input.screenPlacement ?? cur.screenPlacement) === 'smart' ? 'smart' : 'bottom',
+    // Kept as stored (read fresh, not from the memo) unless the admin page sends it, so no other save turns it back on.
+    aiEnabled: input.aiEnabled === undefined ? await aiEnabled() : input.aiEnabled === true,
     catalogue: catalogueOf(input.catalogue, cur.catalogue),
     rules: {
       nameMin: clampInt(r.nameMin ?? cur.rules.nameMin, 1, 100, 3),
@@ -153,6 +158,26 @@ export const saveSettings = async (input, by) => {
   await kvs.set('settings', next);
   memo = null;
   return getSettings();
+};
+
+// AI features (EULA 8.4): on only when a Jira administrator saved aiEnabled: true on the admin page. Read fresh from
+// storage (not the 30-second memo), so switching them off applies at once; no stored value (existing installations)
+// means off.
+export const AI_OFF_MESSAGE = 'AI features of this app are turned off. A Jira administrator can turn them on in the app\'s Configuration (Jira settings > Apps > Custom Field Self-Service for Jira > Configuration).';
+export const aiEnabled = async () => ((await kvs.get('settings')) || {}).aiEnabled === true;
+
+// What the pages show (whoami, for every user): AI is effectively on only when a Jira administrator switched it on AND
+// SUPERPORT has not stopped it (AI_BUDGET). One storage read plus the environment, fresh on every call. Never throws:
+// on any error the AI features count as off, so the pages hide every AI button rather than show one that is refused.
+export const aiState = async () => {
+  let stopped = false;
+  try {
+    stopped = vendorAiStop() === true;
+    const on = await aiEnabled();
+    return { enabled: on && !stopped, stopped };
+  } catch {
+    return { enabled: false, stopped };
+  }
 };
 
 export const isEnabledFor = (settings, projectKey) => !!settings.configured && (!settings.enabledProjects.length || settings.enabledProjects.includes(projectKey));

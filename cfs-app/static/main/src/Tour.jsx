@@ -7,7 +7,7 @@
  * @author      George Papasotiriou
  * @company     SUPERPORT
  * @created     2026-10-26
- * @updated     2026-11-05
+ * @updated     2026-11-16
  */
 
 // Every user sees the tour once (stored per user); the Tour button opens it again. Each step points at the real
@@ -98,7 +98,7 @@ export function SpotlightTour({ steps, onClose, onStep }) {
 }
 
 // The project page's tour, as the person will actually use the page: role, the site's option policy, the limit.
-const projectSteps = ({ role, approver, policy }) => {
+const projectSteps = ({ role, approver, policy, ai = false }) => {
   const admin = role === 'jira-admin';
   const direct = policy?.optionEdits === 'direct';
   const max = policy?.maxContextProjects || 10;
@@ -169,11 +169,12 @@ const projectSteps = ({ role, approver, policy }) => {
       title: t('Bulk changes'),
       body: t('One option change across many fields at once: retire, replace in the work items, rename, add or restore. Preview first, one-click undo after.'),
     }] : []),
-    {
+    // Only while the AI features are on: otherwise the Field Assistant button is hidden and so is its step.
+    ...(ai ? [{
       target: '[data-tour="assistant"]',
       title: t('Field Assistant'),
       body: t('Prefer to ask? Describe what you need in plain words; the assistant previews every change and runs it only after you confirm, with the same rights you have here.'),
-    },
+    }] : []),
     {
       target: '[data-tour="live"]', tab: 'fields',
       title: t('Always up to date'),
@@ -182,6 +183,6 @@ const projectSteps = ({ role, approver, policy }) => {
   ];
 };
 
-export default function Tour({ role, approver, policy, onClose, onGo }) {
-  return <SpotlightTour steps={projectSteps({ role, approver, policy })} onClose={onClose} onStep={(s) => { if (s.tab && onGo) onGo(s.tab); }} />;
+export default function Tour({ role, approver, policy, ai = false, onClose, onGo }) {
+  return <SpotlightTour steps={projectSteps({ role, approver, policy, ai })} onClose={onClose} onStep={(s) => { if (s.tab && onGo) onGo(s.tab); }} />;
 }

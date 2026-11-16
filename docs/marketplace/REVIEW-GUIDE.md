@@ -41,7 +41,7 @@ Sign in as the project administrator.
 | P2 | Try to create a field named "Customer" | Refused by the guideline from A6, with the reason |
 | P3 | Request option "Urgent" on "Review Priority" | A request is raised in `APPR`; **My requests** shows it as waiting |
 | P4 | Open any work item in `TEST` → **•••** → **Request a custom field** | A short form; the request goes to the project administrators first |
-| P5 | Open **Field Assistant** in Rovo → "Add an option Critical to Review Priority" | The agent previews the change and asks for confirmation before raising a request |
+| P5 | As the Jira administrator, turn on admin page → Configuration → **AI features (Rovo agent)** → Save (off by default). Then open **Field Assistant** in Rovo → "Add an option Critical to Review Priority" | The agent previews the change and asks for confirmation before raising a request |
 
 Back as the Jira administrator: **Requests for you** shows P3 with a before/after picture → **Approve** → the option
 appears in the field and the requester is notified. **Reject** works the same way with a reason.
